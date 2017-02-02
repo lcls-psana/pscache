@@ -1,5 +1,6 @@
 
 import redis
+import cPickle
 import threading
 import time
 
@@ -30,14 +31,18 @@ class Client(threading.Thread):
     def query(self):
         
         item = self._pubsub.get_message()
-        if item['type'] == 'message':
-            print item['channel'], ":", item['data']
+        if item is not None:
+            if item['type'] == 'message':
+                #print item['channel'], ":", item['data']
+                d = cPickle.loads(item['data'])
+            else:
+                self.query()
         else:
             # messages are also sent to indicate pub/subs etc
             # this recursion ensures we get a message
             self.query()
         
-        return
+        return d
     
     # ----------------------
     
@@ -78,3 +83,4 @@ if __name__ == '__main__':
     
     print '----   following    ----'
     c.follow()
+    

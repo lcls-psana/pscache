@@ -1,6 +1,6 @@
 
 import redis
-
+import cPickle
 
 class Publisher(object):
     
@@ -24,16 +24,17 @@ class Publisher(object):
         
         
     def send(self, topic, message):
-        self._redis.publish(topic, message)
+        self._redis.publish(topic, cPickle.dumps(message))
         
         
 if __name__ == '__main__':
     
     import time
     
-    p = Publisher('blank')
+    p = Publisher('experiment_number')
     
     for i in range(30):
-        p.send('number', {'a' : i})
+        p.send('number', i)
         time.sleep(0.1)
+
     p.send('number', 'KILL')

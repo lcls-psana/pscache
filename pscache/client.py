@@ -28,21 +28,24 @@ class Client(threading.Thread):
         return
         
         
-    def query(self):
+    def keys(self, pattern='*'):
+        return self._redis.keys(pattern)
+        
+        
+    def query(self, retry_time=0.01):
         
         item = self._pubsub.get_message()
         if item is not None:
             if item['type'] == 'message':
-                #print item['channel'], ":", item['data']
                 d = cPickle.loads(item['data'])
-            else:
-                self.query()
-        else:
-            # messages are also sent to indicate pub/subs etc
-            # this recursion ensures we get a message
-            self.query()
+                return d
+
+        # messages are also sent to indicate pub/subs etc
+        # this recursion ensures we get a message
+        time.sleep(retry_time)
+        self.query()
         
-        return d
+        return 
     
     # ----------------------
     

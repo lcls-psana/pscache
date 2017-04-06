@@ -98,7 +98,7 @@ class ExptClient(object):
         runs : list of ints
             List of runs.
         """
-        return self._redis.lrange('runs', 0, -1)
+        return self._redis.smembers('runs')
         
         
     def keys(self, run):
@@ -170,6 +170,11 @@ class ExptClient(object):
         
         fmt : str {'list', 'xarray'}
             What format to return the data in.
+        
+        Returns
+        -------
+        data : dict
+            The data requested, in a dict where key --> np.array.
         """
         
         
@@ -177,11 +182,11 @@ class ExptClient(object):
             keys = self.keys(run)
             
         # fetch data into a list
-        data = []
+        data = {}
         for k in keys:
             name = 'run%d:%s' % (run, k)
             d = [cPickle.loads(s) for s in self._redis.lrange(name, 0, max_events-1)]
-            data.append(np.array(d))
+            data[k] = np.array(d)
             
         # reformat if requested
         if fmt == 'list':

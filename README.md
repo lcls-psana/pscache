@@ -36,16 +36,3 @@ This way the user can:
 4. Get the data for a specific key ("run#:(key)")
 
 
-### Redis Commands
-
-To insert:
-
-MULTI
-LPUSH  list "item"
-LTRIM  list 0 N
-LRANGE list 0 N
-EXEC
-
-
-
-

@@ -6,15 +6,24 @@ import redis
 from pscache import client
 from pscache import publisher
 
+import socket
+if socket.gethostname()[:5] == 'psana':
+    print 'psana machine, using psdb3 as REDIS target'
+    HOST = 'psdb3'
+else:
+    HOST = 'localhost'
+PORT = 6379
+DB   = 0
+
 
 class TestExptClient(object):
 
-    # put some fake data into a local redis db
+    # put some fake data into a redis db
     # test all fxns in client
 
     def setup(self):
 
-        self._redis = redis.StrictRedis(host='localhost', port=6379, db=0)
+        self._redis = redis.StrictRedis(host=HOST, port=PORT, db=DB)
 
 
         self.shape = (1,)
@@ -27,7 +36,7 @@ class TestExptClient(object):
         for i in range(100):
             self._redis.rpush('run47:data', cPickle.dumps(i))
 
-        self.client = client.ExptClient('testexpt', host='localhost')
+        self.client = client.ExptClient('testexpt', host=HOST)
         
         return
 
@@ -63,8 +72,8 @@ class TestExptClient(object):
 class TestExptPublisher(object):
     
     def setup(self):
-        self._redis = redis.StrictRedis(host='localhost', port=6379, db=0)
-        self.pub = publisher.ExptPublisher('testexpt', host='localhost')
+        self._redis = redis.StrictRedis(host=HOST, port=PORT, db=DB)
+        self.pub = publisher.ExptPublisher('testexpt', host=HOST)
         return
         
         

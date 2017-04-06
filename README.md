@@ -35,4 +35,8 @@ This way the user can:
 3. Get the expected shape and type for a key ("run(#):keys" "key")
 4. Get the data for a specific key ("run#:(key)")
 
+### to do
+
+1. figure out how to infer run #
+2. insert into smalldata code
 

@@ -3,14 +3,16 @@ import redis
 import cPickle
 import threading
 import time
+import numpy as np
 
-class Client(threading.Thread):
+class TopicClient(threading.Thread):
     
     def __init__(self, topic):
         
         threading.Thread.__init__(self)
         
-        self._redis = redis.StrictRedis(host='localhost', port=6379, 
+        self._redis = redis.StrictRedis(host='localhost',
+                                        port=6379, 
                                         db=0, 
                                         password=None, 
                                         socket_timeout=None, 
@@ -26,7 +28,7 @@ class Client(threading.Thread):
         self._pubsub.subscribe(topic)
         
         return
-        
+    
         
     def keys(self, pattern='*'):
         return self._redis.keys(pattern)
@@ -72,10 +74,131 @@ class Client(threading.Thread):
         return
         
         
+class ExptClient(object):
+    
+    def __init__(self, experiment, host='localhost', **kwargs):
+        
+        # todo : set db based on experiment ?
+        # 
+        
+        self._redis = redis.StrictRedis(host=host,
+                                        port=6379, 
+                                        db=0, 
+                                        **kwargs)
+                                        
+        return
+        
+        
+    def runs(self):
+        """
+        Get a list of runs in the Redis database for this experiment.
+        
+        Returns
+        -------
+        runs : list of ints
+            List of runs.
+        """
+        return self._redis.lrange('runs', 0, -1)
+        
+        
+    def keys(self, run):
+        """
+        Get a list of keys associated with the specific run.
+        
+        Parameters
+        ----------
+        run : int
+            The run number. Use -1 to get the most recent run (-2 to get 2nd
+            most recent, etc).
+        
+        Returns
+        -------
+        keyinfo : dict
+            A dictionary mapping key names --> (shape, type)
+        """
+        return self._redis.hkeys('run%s:keys' % run)
+        
+        
+    def keyinfo(self, run):
+        """
+        Get a list of keys associated with the specific run, along with the
+        shapes and types of the data they point to.
+        
+        Parameters
+        ----------
+        run : int
+            The run number. Use -1 to get the most recent run (-2 to get 2nd
+            most recent, etc).
+        
+        Returns
+        -------
+        keyinfo : dict
+            A dictionary mapping key names --> (shape, type)
+        """
+        
+        tuple_strip = lambda s : s.strip('(').strip(')').strip()
+        
+        d = self._redis.hgetall('run%s:keys' % run)
+        for k in d.keys():
+            shp, typ = d[k].split('-')
+            
+            shp = [ tuple_strip(x) for x in shp.split(',') ]
+            shp.remove('')
+            shp = tuple([int(x) for x in shp])
+            
+            d[k] = (shp, typ)
+        
+        return d
+        
+        
+    def fetch_data(self, run, keys=[], max_events=-1, fmt='list'):
+        """
+        Get the data for a set of keys (by default all) for a specific run.
+        
+        Parameters
+        ----------
+        run : int
+            The run number. Use -1 to get the most recent run (-2 to get 2nd
+            most recent, etc).
+        
+        keys : list of str
+            A list of strings, each string being a key to fetch. Pass an empty
+            list to get all keys for the run.
+        
+        max_events : int
+            The maximum number of events to fetch. -1 (default) means fetch all.
+        
+        fmt : str {'list', 'xarray'}
+            What format to return the data in.
+        """
+        
+        
+        if len(keys) == 0:
+            keys = self.keys(run)
+            
+        # fetch data into a list
+        data = []
+        for k in keys:
+            name = 'run%d:%s' % (run, k)
+            d = [cPickle.loads(s) for s in self._redis.lrange(name, 0, max_events-1)]
+            data.append(np.array(d))
+            
+        # reformat if requested
+        if fmt == 'list':
+            pass
+        elif fmt == 'xarray':
+            raise NotImplementedError() # todo
+        else:
+            raise ValueError('`fmt` must be one of {"list", "xarray"}')
+            
+
+        return data
+
+        
                 
 if __name__ == '__main__':
     
-    c = Client('number')
+    c = TopicClient('number')
     
     time.sleep(1)
     

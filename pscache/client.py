@@ -116,7 +116,8 @@ class ExptClient(object):
         keyinfo : dict
             A dictionary mapping key names --> (shape, type)
         """
-        return self._redis.hkeys('run%s:keys' % run)
+        name = 'run%d:keyinfo' % run
+        return self._redis.hkeys(name)
         
         
     def keyinfo(self, run):
@@ -138,12 +139,13 @@ class ExptClient(object):
         
         tuple_strip = lambda s : s.strip('(').strip(')').strip()
         
-        d = self._redis.hgetall('run%s:keys' % run)
+        d = self._redis.hgetall('run%s:keyinfo' % run)
         for k in d.keys():
             shp, typ = d[k].split('-')
             
             shp = [ tuple_strip(x) for x in shp.split(',') ]
-            shp.remove('')
+            if '' in shp:
+                shp.remove('')
             shp = tuple([int(x) for x in shp])
             
             d[k] = (shp, typ)

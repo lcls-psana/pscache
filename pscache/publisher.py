@@ -23,8 +23,9 @@ class Publisher(object):
 
 class ExptPublisher(object):
     
-    def __init__(self, expt, host='localhost', **kwargs):
-        
+    def __init__(self, expt, host='localhost', verbose=False, **kwargs):
+
+        self.verbose = verbose
         self._redis = redis.StrictRedis(host=host, port=6379, db=0, 
                                         **kwargs)
                                         
@@ -90,12 +91,14 @@ class ExptPublisher(object):
             e.g. "-1" means send all.
         """
         
+        if self.verbose: print 'sending data...'
         self._redis.sadd('runs', run) # ensure run is there
 
         if keys == None:
             keys = smd_dict.keys()
             
         for k in keys:
+            if self.verbose: print 'sending run%d:%s [%d evts]' % (run, k, smd_dict[k].shape[0])
             self._send_data(run, k, smd_dict[k], event_limit=event_limit)
 
         return

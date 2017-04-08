@@ -32,7 +32,7 @@ class ExptPublisher(object):
         return
         
 
-    def smalldata_monitor(self, keys=None, event_limit=-1):
+    def smalldata_monitor(self, run_lookup_fxn, keys=None, event_limit=-1):
         """
         Create a monitor function to hook the publisher into the
         psana SmallData interface.
@@ -60,10 +60,10 @@ class ExptPublisher(object):
         >>> smd.add_monitor_function(mt_fxn)
         """
 
-        run = 9999 # TODO how do we get this??
+        self._run_lookup_fxn = run_lookup_fxn
 
         monitor = partial(self.send_dict,
-                          run=run,
+                          run=None,
                           keys=keys,
                           event_limit=event_limit)
 
@@ -90,6 +90,12 @@ class ExptPublisher(object):
             The maximum number of events to send. Negative indexing is OK, so
             e.g. "-1" means send all.
         """
+
+        if run == None:
+            if hasattr(self, '_run_lookup_fxn'):
+                run = self._run_lookup_fxn() # lookup latest!!
+            else:
+                raise ValueError('run=None not acceptable')
         
         if self.verbose: print 'sending data...'
         self._redis.sadd('runs', run) # ensure run is there
@@ -117,7 +123,7 @@ class ExptPublisher(object):
         data : ndarray
             First dimension is event index
         """
-        
+
         # check keyinfo is correct
         shp = data[0].shape
         if shp == (): shp = (1,)
@@ -131,7 +137,7 @@ class ExptPublisher(object):
         
         # send data & trim excess
         pipe = self._redis.pipeline()
-        
+
         for i in range(data.shape[0])[::-1]: # filo
             pipe.lpush('run%d:%s' % (run, key), 
                        cPickle.dumps(data[i]))

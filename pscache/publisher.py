@@ -124,6 +124,11 @@ class ExptPublisher(object):
             First dimension is event index
         """
 
+        # sometimes we might get called with no data...
+        # if so, just return
+        if data.shape == (0,):
+            return
+
         # check keyinfo is correct
         shp = data[0].shape
         if shp == (): shp = (1,)

@@ -1,18 +1,6 @@
 # pscache
 A "live" hub for intermediate LCLS analysis results 
 
-### Quick Start
-* python setup.py install
-* sh local_redis
-* python animated_pub.py
-* open the rerun.ipynb notebook
-
-must have redis, redis-py, jupyter installed
-
-### Issues to resolve
-* how to serialize data for python-redis communication
-* how to organize data in redis (instances vs. dbs)
-
 ### Info on Redis
 * https://jira.slac.stanford.edu/browse/PSDH-71?jql=text%20~%20%22redis%22
 
@@ -37,6 +25,9 @@ This way the user can:
 
 ### to do
 
-1. figure out how to infer run #
-2. insert into smalldata code
+1a. data lifetime
+1b. run length
+2. to xarray
+3. flush/delete
+4. (for later) one DB per expt
 

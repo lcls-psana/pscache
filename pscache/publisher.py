@@ -39,6 +39,9 @@ class ExptPublisher(object):
 
         Parameters
         ----------
+        run_lookup_fxn : function
+            A function that returns the current run number
+
         keys : list of str
             A list of the keys to send to the pubisher. `None`
             (default) indicates all should be sent.
@@ -151,7 +154,20 @@ class ExptPublisher(object):
         pipe.execute()
         
         return
-        
+
+
+    def delete_run(self, run):
+        name = 'run%d:keyinfo' % run
+        keys = self._redis.hkeys(name)
+        self._redis.delete(keys)
+        self._redis.srem('runs', run)
+        return
+
+
+    def flushdb(self):
+        self._redis.flushdb()
+        return        
+
         
 if __name__ == '__main__':
     

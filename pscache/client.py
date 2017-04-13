@@ -201,7 +201,17 @@ class ExptClient(object):
 
         return data
 
-        
+
+    def delete_run(self, run):
+        self._redis.delete(self.keys(run))
+        self._redis.srem('runs', run)
+        return
+
+
+    def flushdb(self):
+        self._redis.flushdb()
+        return
+
                 
 if __name__ == '__main__':
     

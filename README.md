@@ -28,6 +28,5 @@ This way the user can:
 1a. data lifetime
 1b. run length
 2. to xarray
-3. flush/delete
-4. (for later) one DB per expt
+3. (for later) one DB per expt
 

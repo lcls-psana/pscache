@@ -25,21 +25,19 @@ class TestExptClient(object):
 
         self._redis = redis.StrictRedis(host=HOST, port=PORT, db=DB)
 
-
         self.shape = (1,)
         self.type  = 'i8'
         info = '%s-%s' % (str(self.shape), self.type)
 
         # create instances of the 3 types of keys
         self._redis.sadd('runs', 47)
-        self._redis.hset('run47:keys', 'data', info) 
+        self._redis.hset('run47:keyinfo', 'data', info) 
         for i in range(100):
             self._redis.rpush('run47:data', cPickle.dumps(i))
 
         self.client = client.ExptClient('testexpt', host=HOST)
         
         return
-
 
     def test_runs(self):
         r = self.client.runs()
@@ -49,10 +47,12 @@ class TestExptClient(object):
     def test_keys(self):
         ks = self.client.keys(47)
         assert type(ks) == list
+        print ks
         assert 'data' in ks
 
     def test_keyinfo(self):
         ki = self.client.keyinfo(47)
+        print ki
         assert type(ki) == dict
         assert 'data' in ki.keys()
         assert ki['data'][0] == self.shape
@@ -65,8 +65,18 @@ class TestExptClient(object):
         assert np.all(d['data'] == np.arange(50))
         assert d['data'].dtype == np.dtype(self.type)
 
+    def test_delete(self):
+        print self.client.runs()
+        assert '47' in self.client.runs()
+        self.client.delete_run(47)
+        assert '47' not in self.client.runs()
+
+    def test_flush(self):
+        self.client.flushdb()
+        assert len(self._redis.keys('*')) == 0
+
     def teardown(self):
-        self._redis.delete('runs', 'run47:keyinfo', 'run47:data')
+        self._redis.flushdb()
 
 
 class TestExptPublisher(object):
@@ -94,7 +104,7 @@ class TestExptPublisher(object):
         
         
     def test_send_smalldata_dict(self):
-        
+       
         smd_dict = {'data' : np.arange(50)}
         run = 47
         self.pub.send_dict(smd_dict, run)
@@ -109,9 +119,12 @@ class TestExptPublisher(object):
         
         
     def test_smalldata_monitor(self):
-        
-        run = 9999 # TODO
-        mon = self.pub.smalldata_monitor()
+       
+        run = 9999
+        def run_lookup_fxn():
+            return run
+
+        mon = self.pub.smalldata_monitor(run_lookup_fxn)
         
         smd_dict = {'data' : np.arange(50)}
         mon(smd_dict)
@@ -124,9 +137,25 @@ class TestExptPublisher(object):
         assert keyinfo['data'] == '(1,)-<i8'
         
         return
-    
+
+
+    def test_delete_run(self):
+
+        smd_dict = {'data' : np.arange(50)}
+        run = 47
+        self.pub.send_dict(smd_dict, run)
+
+        assert '47' in self._redis.smembers('runs')
+        self.pub.delete_run(47)
+        assert '47' not in self._redis.smembers('runs')
+
+
+    def test_flush(self):
+        self.pub.flushdb()
+        assert len(self._redis.keys('*')) == 0
+
 
     def teardown(self):
-        self._redis.delete('runs', 'run47:keyinfo', 'run47:data',
-                           'run9999:keyinfo', 'run9999:data')
+        self._redis.flushdb()
+
 

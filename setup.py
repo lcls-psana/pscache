@@ -14,7 +14,7 @@ except ImportError:
 
 
 setup(name='pscache',
-      version='0.0.1',
+      version='0.1',
       author="TJ Lane",
       author_email="tjlane@stanford.edu",
       description='CSPad geometry, assembly and optimization',

@@ -32,7 +32,7 @@ class ExptPublisher(object):
         return
         
 
-    def smalldata_monitor(self, run_lookup_fxn, keys=None, event_limit=-1):
+    def smalldata_monitor(self, run_lookup_fxn, keys=None, event_limit=None):
         """
         Create a monitor function to hook the publisher into the
         psana SmallData interface.
@@ -73,7 +73,7 @@ class ExptPublisher(object):
         return monitor
         
     
-    def send_dict(self, smd_dict, run, keys=None, event_limit=-1):
+    def send_dict(self, smd_dict, run, keys=None, event_limit=None):
         """
         Publish dictionary `smd_dict` to REDIS under `run`.
         
@@ -106,14 +106,18 @@ class ExptPublisher(object):
         if keys == None:
             keys = smd_dict.keys()
             
+        pipe = self._redis.pipeline()
         for k in keys:
             if self.verbose: print 'sending run%d:%s [%d evts]' % (run, k, smd_dict[k].shape[0])
-            self._send_data(run, k, smd_dict[k], event_limit=event_limit)
+            self._send_data(run, k, smd_dict[k], event_limit=event_limit,
+                            external_pipeline=pipe)
+        pipe.execute()
 
         return
         
         
-    def _send_data(self, run, key, data, event_limit=-1):
+    def _send_data(self, run, key, data, event_limit=None,
+                   external_pipeline=None):
         """
         Parameters
         ----------
@@ -125,6 +129,11 @@ class ExptPublisher(object):
         
         data : ndarray
             First dimension is event index
+                   
+        external_pipeline : redis.Pipeline
+            If provided, add to this pipeline. Otherwise create a new pipeline.
+            If an external_pipeline is provided, the pipeline will not be
+            executed by this function.
         """
 
         # sometimes we might get called with no data...
@@ -137,21 +146,27 @@ class ExptPublisher(object):
         if shp == (): shp = (1,)
         info = '%s-%s' % (str(shp), data[0].dtype.str)
         
-        if self._redis.hexists('run%d:keyinfo' % run, key):
-            # TODO next line may not be necessary
-            assert self._redis.hget('run%d:keyinfo' % run, key) == info 
-        else:
-            self._redis.hset('run%d:keyinfo' % run, key, info)
+        # if self._redis.hexists('run%d:keyinfo' % run, key):
+        #     # TODO next line may not be necessary
+        #     assert self._redis.hget('run%d:keyinfo' % run, key) == info
+        # else:
+        self._redis.hset('run%d:keyinfo' % run, key, info)
         
         # send data & trim excess
-        pipe = self._redis.pipeline()
+        if external_pipeline is None:
+            pipe = self._redis.pipeline()
+        else:
+            pipe = external_pipeline
 
         for i in range(data.shape[0])[::-1]: # filo
             pipe.lpush('run%d:%s' % (run, key), 
                        cPickle.dumps(data[i]))
             
-        pipe.ltrim('run%d:%s' % (run, key), 0, event_limit)
-        pipe.execute()
+        if event_limit is not None:
+            pipe.ltrim('run%d:%s' % (run, key), 0, event_limit)
+        
+        if external_pipeline is None:
+            pipe.execute()
         
         return
 

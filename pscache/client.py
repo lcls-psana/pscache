@@ -175,7 +175,7 @@ class ExptClient(object):
         return d
        
         
-    def fetch_data(self, run, keys=[], max_events=-1, fmt='list'):
+    def fetch_data(self, run, keys=[], max_events=None, fmt='list'):
         """
         Get the data for a set of keys (by default all) for a specific run.
         
@@ -190,7 +190,7 @@ class ExptClient(object):
             list to get all keys for the run.
         
         max_events : int
-            The maximum number of events to fetch. -1 (default) means fetch all.
+            The maximum number of events to fetch. None (default) means fetch all.
         
         fmt : str {'list', 'xarray'}
             What format to return the data in.
@@ -205,6 +205,9 @@ class ExptClient(object):
         
         if len(keys) == 0:
             keys = self.keys(run)
+            
+        if max_events is None:
+            max_events = 0
             
         # stage fetch in a pipeline
         pipe = self._redis.pipeline()

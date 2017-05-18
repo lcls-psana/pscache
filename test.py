@@ -27,11 +27,11 @@ class TestExptClient(object):
 
         self.shape = (1,)
         self.type  = 'i8'
-        info = '%s-%s' % (str(self.shape), self.type)
+        self.info = '%s-%s' % (str(self.shape), self.type)
 
         # create instances of the 3 types of keys
         self._redis.sadd('runs', 47)
-        self._redis.hset('run47:keyinfo', 'data', info) 
+        self._redis.hset('run47:keyinfo', 'data', self.info) 
         for i in range(100):
             self._redis.rpush('run47:data', cPickle.dumps(i))
 
@@ -71,6 +71,15 @@ class TestExptClient(object):
         assert 'data' in d.keys()
         assert np.all(d['data'] == np.arange(50))
         assert d['data'].dtype == np.dtype(self.type)
+
+    def test_ensure_square(self):
+        self._redis.hset('run47:keyinfo', 'data2', self.info)
+        for i in range(55): # 'data' has 100 events
+            self._redis.rpush('run47:data2', cPickle.dumps(i))
+        d = self.client.fetch_data(47, keys=['data', 'data2'],
+                                   ensure_square=True)
+        assert np.all(d['data'] == np.arange(55))
+        assert np.all(d['data2'] == np.arange(55))
 
     def test_delete(self):
         print self.client.runs()

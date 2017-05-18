@@ -175,7 +175,8 @@ class ExptClient(object):
         return d
        
         
-    def fetch_data(self, run, keys=[], max_events=None, fmt='list'):
+    def fetch_data(self, run, keys=[], max_events=None, fmt='list',
+                   ensure_square=True):
         """
         Get the data for a set of keys (by default all) for a specific run.
         
@@ -194,6 +195,10 @@ class ExptClient(object):
         
         fmt : str {'list', 'xarray'}
             What format to return the data in.
+                   
+        ensure_square : bool
+            If True, this ensures that the same number of events for each key
+            are reported in the output.
         
         Returns
         -------
@@ -220,6 +225,11 @@ class ExptClient(object):
         for i,x in enumerate(pipe.execute()):
             d = [cPickle.loads(s) for s in x]
             data[keys[i]] = np.array(d)
+            
+        if ensure_square:
+            limit = np.min([data[k].shape[0] for k in keys])
+            for k in keys:
+                data[k] = data[k][:limit]
             
         # reformat if requested
         if fmt == 'list':

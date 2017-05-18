@@ -5,6 +5,8 @@ import threading
 import time
 import numpy as np
 
+
+
 class TopicClient(threading.Thread):
     
     def __init__(self, topic):
@@ -101,6 +103,24 @@ class ExptClient(object):
         return self._redis.smembers('runs')
         
         
+    def _run_check(self, run):
+        """
+        Ensure run gets mapped to the right lookup value
+        """
+    
+        run = int(run)
+    
+        if run < 0:
+            runs = list(self.runs())
+            runs.sort()
+            run = int(runs[run])
+            assert run > 0
+        if run == 0:
+            raise ValueError('run=0 is not a valid option')
+    
+        return run
+        
+        
     def keys(self, run):
         """
         Get a list of keys associated with the specific run.
@@ -116,7 +136,7 @@ class ExptClient(object):
         keyinfo : dict
             A dictionary mapping key names --> (shape, type)
         """
-        name = 'run%d:keyinfo' % run
+        name = 'run%d:keyinfo' % self._run_check(run)
         return self._redis.hkeys(name)
         
         
@@ -137,6 +157,8 @@ class ExptClient(object):
             A dictionary mapping key names --> (shape, type)
         """
         
+        run = self._run_check(run)
+        
         tuple_strip = lambda s : s.strip('(').strip(')').strip()
         
         d = self._redis.hgetall('run%s:keyinfo' % run)
@@ -151,7 +173,7 @@ class ExptClient(object):
             d[k] = (shp, typ)
         
         return d
-        
+       
         
     def fetch_data(self, run, keys=[], max_events=-1, fmt='list'):
         """
@@ -179,22 +201,15 @@ class ExptClient(object):
             The data requested, in a dict where key --> np.array.
         """
         
+        run = self._run_check(run)
         
         if len(keys) == 0:
             keys = self.keys(run)
             
-        if run < 0:
-            runs = list(self.runs())
-            runs.sort()
-            run = runs[run]
-            assert run > 0
-        if run == 0:
-            raise ValueError('run=0 is not a valid option')
-            
         # fetch data into a list
         data = {}
         for k in keys:
-            name = 'run%d:%s' % (int(run), k)
+            name = 'run%d:%s' % (run, k)
             d = [cPickle.loads(s) for s in self._redis.lrange(name, 0, max_events-1)]
             data[k] = np.array(d)
             

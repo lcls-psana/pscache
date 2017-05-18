@@ -77,6 +77,8 @@ class TestExptClient(object):
         assert '47' in self.client.runs()
         self.client.delete_run(47)
         assert '47' not in self.client.runs()
+        assert 'run47:data' not in self._redis.keys()
+        assert 'run47:keyinfo' not in self._redis.keys()
 
     def test_flush(self):
         self.client.flushdb()

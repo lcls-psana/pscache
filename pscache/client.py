@@ -206,12 +206,17 @@ class ExptClient(object):
         if len(keys) == 0:
             keys = self.keys(run)
             
-        # fetch data into a list
-        data = {}
+        # stage fetch in a pipeline
+        pipe = self._redis.pipeline()
         for k in keys:
             name = 'run%d:%s' % (run, k)
-            d = [cPickle.loads(s) for s in self._redis.lrange(name, 0, max_events-1)]
-            data[k] = np.array(d)
+            pipe.lrange(name, 0, max_events-1)
+        
+        # pull data out of pipeline into a formatted dictionary
+        data = {}
+        for i,x in enumerate(pipe.execute()):
+            d = [cPickle.loads(s) for s in x]
+            data[keys[i]] = np.array(d)
             
         # reformat if requested
         if fmt == 'list':
@@ -221,13 +226,17 @@ class ExptClient(object):
         else:
             raise ValueError('`fmt` must be one of {"list", "xarray"}')
             
-
         return data
 
 
     def delete_run(self, run):
-        self._redis.delete(self.keys(run))
-        self._redis.srem('runs', run)
+        pipe = self._redis.pipeline()
+        keys = ['run%d:%s'%(run,k) for k in self.keys(run)]
+        for k in keys:
+            pipe.delete(k)
+        pipe.delete('run47:keyinfo')
+        pipe.srem('runs', run)
+        pipe.execute()
         return
 
 

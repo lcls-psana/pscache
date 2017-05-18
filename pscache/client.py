@@ -183,10 +183,18 @@ class ExptClient(object):
         if len(keys) == 0:
             keys = self.keys(run)
             
+        if run < 0:
+            runs = list(self.runs())
+            runs.sort()
+            run = runs[run]
+            assert run > 0
+        if run == 0:
+            raise ValueError('run=0 is not a valid option')
+            
         # fetch data into a list
         data = {}
         for k in keys:
-            name = 'run%d:%s' % (run, k)
+            name = 'run%d:%s' % (int(run), k)
             d = [cPickle.loads(s) for s in self._redis.lrange(name, 0, max_events-1)]
             data[k] = np.array(d)
             

@@ -65,6 +65,13 @@ class TestExptClient(object):
         assert np.all(d['data'] == np.arange(50))
         assert d['data'].dtype == np.dtype(self.type)
 
+    def test_minus_one(self):
+        d = self.client.fetch_data(-1, keys=['data'], max_events=50, fmt='list')
+        assert type(d) == dict
+        assert 'data' in d.keys()
+        assert np.all(d['data'] == np.arange(50))
+        assert d['data'].dtype == np.dtype(self.type)
+
     def test_delete(self):
         print self.client.runs()
         assert '47' in self.client.runs()

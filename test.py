@@ -2,6 +2,7 @@
 import cPickle
 import numpy as np
 import redis
+import time
 
 from pscache import client
 from pscache import publisher
@@ -166,6 +167,30 @@ class TestExptPublisher(object):
         assert 'run47:keyinfo' in self._redis.keys('run*:keyinfo')
         self.pub.delete_run(47)
         assert 'run47:keyinfo' not in self._redis.keys('run*:keyinfo')
+
+
+    def test_expire_run(self):
+
+        smd_dict = {'data' : np.arange(50)}
+        run = 47
+        self.pub.send_dict(smd_dict, run)
+
+        self.pub.set_run_to_expire(47, 3)
+        assert 'run47:keyinfo' in self._redis.keys('run*:keyinfo')
+        time.sleep(5)
+        assert 'run47:keyinfo' not in self._redis.keys('run*:keyinfo')
+
+
+    def test_autoexpire(self):
+
+        self.pub.auto_expire = 3
+        smd_dict = {'data' : np.arange(50)}
+        run = 47
+        self.pub.send_dict(smd_dict, run)
+
+        assert 'run47:data' in self._redis.keys('run47*')
+        time.sleep(5)
+        assert 'run47:data' not in self._redis.keys('run47*')
 
 
     def test_flush(self):

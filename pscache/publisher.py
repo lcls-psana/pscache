@@ -23,9 +23,11 @@ class Publisher(object):
 
 class ExptPublisher(object):
     
-    def __init__(self, expt, host='localhost', verbose=False, **kwargs):
+    def __init__(self, expt, host='localhost', verbose=False, 
+                 auto_expire=1800, **kwargs):
 
         self.verbose = verbose
+        self.auto_expire = auto_expire
         self._redis = redis.StrictRedis(host=host, port=6379, db=0, 
                                         **kwargs)
                                         
@@ -163,10 +165,30 @@ class ExptPublisher(object):
             
         if event_limit is not None:
             pipe.ltrim('run%d:%s' % (run, key), 0, event_limit)
+            
+        if self.auto_expire is not None:
+            if self.auto_expire > 0:
+                if self.verbose:
+                    print('run %d key %s :: autoexpires in %d' % (run, key, self.auto_expire))
+                pipe.expire('run%d:%s' % (run, key), self.auto_expire)
         
         if external_pipeline is None:
             pipe.execute()
         
+        return
+        
+        
+    def set_run_to_expire(self, run, time):
+        """
+        time : time in seconds
+        """
+        name = 'run%d:keyinfo' % run
+        keys = self._redis.hkeys(name)
+        
+        self._redis.expire(name, time)
+        for key in keys:
+            self._redis.expire(key, time)
+            
         return
 
 

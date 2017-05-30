@@ -163,9 +163,9 @@ class TestExptPublisher(object):
         run = 47
         self.pub.send_dict(smd_dict, run)
 
-        assert '47' in self._redis.smembers('runs')
+        assert 'run47:keyinfo' in self._redis.keys('run*:keyinfo')
         self.pub.delete_run(47)
-        assert '47' not in self._redis.smembers('runs')
+        assert 'run47:keyinfo' not in self._redis.keys('run*:keyinfo')
 
 
     def test_flush(self):

@@ -100,7 +100,7 @@ class ExptClient(object):
         runs : list of ints
             List of runs.
         """
-        return self._redis.smembers('runs')
+        return set([r.split(':')[0][3:] for r in self._redis.keys('run*:keyinfo')])
         
         
     def _run_check(self, run):

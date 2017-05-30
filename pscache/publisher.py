@@ -101,7 +101,6 @@ class ExptPublisher(object):
                 raise ValueError('run=None not acceptable')
         
         if self.verbose: print 'sending data...'
-        self._redis.sadd('runs', run) # ensure run is there
 
         if keys == None:
             keys = smd_dict.keys()
@@ -175,7 +174,7 @@ class ExptPublisher(object):
         name = 'run%d:keyinfo' % run
         keys = self._redis.hkeys(name)
         self._redis.delete(keys)
-        self._redis.srem('runs', run)
+        self._redis.delete(name)
         return
 
 

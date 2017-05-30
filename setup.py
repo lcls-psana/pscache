@@ -14,10 +14,10 @@ except ImportError:
 
 
 setup(name='pscache',
-      version='0.1',
+      version='0.2',
       author="TJ Lane",
       author_email="tjlane@stanford.edu",
-      description='CSPad geometry, assembly and optimization',
+      description='REDIS in-memory access for smalldata, +',
       packages=["pscache"],
       package_dir={"pscache": "pscache"},
       scripts=[s for s in glob('scripts/*') if not s.endswith('__.py')],
